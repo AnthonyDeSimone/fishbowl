@@ -26,7 +26,12 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    require 'fishbowl'
+
+    c = Fishbowl::Connection
+    c.connect(:host => 'localhost')
+    c.login(:username => "admin", :password => "admin")
+    c.get_carrier_list.each {|a| puts a.name}
 
 ## Contributing
 
