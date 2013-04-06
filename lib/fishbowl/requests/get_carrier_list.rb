@@ -1,10 +1,14 @@
 module Fishbowl::Requests
-  def self.get_carrier_list
-    _, _, response = Fishbowl::Objects::BaseObject.new.send_request('CarrierListRq', 'CarrierListRs')
-
+  def get_carrier_list
+    object = Fishbowl::Objects::BaseObject.new
+    object.ticket = @key
+    
+    _, _, response = object.send_request('CarrierListRq', 'CarrierListRs')
     results = []
-    response.xpath("//Carrier").each do |carrier_xml|
-      results << Fishbowl::Objects::Carrier.new(carrier_xml)
+
+    response.xpath("//Carriers/Name").each do |carrier_xml|
+      xml = Nokogiri::XML(carrier_xml.to_xml) #There might be a better way to do this
+      results << Fishbowl::Objects::Carrier.new(xml)
     end
 
     results

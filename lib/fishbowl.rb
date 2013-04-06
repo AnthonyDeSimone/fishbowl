@@ -1,6 +1,7 @@
 require 'socket'
 require 'base64'
 require 'singleton'
+require 'digest/md5'
 
 require 'nokogiri'
 
@@ -14,7 +15,8 @@ require 'fishbowl/objects'
 module Fishbowl # :nodoc:
   class Connection
     include Singleton
-
+    extend Requests
+   
     def self.connect(options = {})
       raise Fishbowl::Errors::MissingHost if options[:host].nil?
 
@@ -22,7 +24,7 @@ module Fishbowl # :nodoc:
       @port = options[:port].nil? ? 28192 : options[:port]
 
       @connection = TCPSocket.new @host, @port
-
+      @key = nil
       self.instance
     end
 
@@ -35,7 +37,7 @@ module Fishbowl # :nodoc:
 
       code, message, _ = Fishbowl::Objects::BaseObject.new.send_request(login_request, 'LoginRs')
 
-      Fishbowl::Errors.confirm_success_or_raise(code, message)
+      Fishbowl::Errors.confirm_success_or_raise(code.to_i)
 
       self.instance
     end
@@ -72,9 +74,9 @@ module Fishbowl # :nodoc:
       Nokogiri::XML::Builder.new do |xml|
         xml.request {
           xml.LoginRq {
-            xml.IAID          "fishbowl-ruby"
-            xml.IAName        "Fishbowl Ruby Gem"
-            xml.IADescription "Fishbowl Ruby Gem"
+            xml.IAID          "11"
+            xml.IAName        "Ruby Fishbowl"
+            xml.IADescription "Ruby Fishbowl"
             xml.UserName      @username
             xml.UserPassword  encoded_password
           }
@@ -83,7 +85,7 @@ module Fishbowl # :nodoc:
     end
 
     def self.encoded_password
-      Base64.encode64(@password)
+      Base64.encode64(Digest::MD5.digest(@password)).chomp
     end
 
     def self.write(request)
@@ -95,14 +97,17 @@ module Fishbowl # :nodoc:
     end
 
     def self.get_response(expectation)
-      length = @connection.recv(3).unpack('L>').join('').to_i
+      length = @connection.recv(4).unpack("L>").join('').to_i
       response = Nokogiri::XML.parse(@connection.recv(length))
-
-      status_code = response.xpath("//#{expectation}/@statusCode").first.value
-      status_message = response.xpath("//#{expectation}/@statusMessage").first.value
-
+      
+      if(@key.nil?)
+        @key = response.xpath("//Ticket/Key/text()").first
+      end
+      
+      status_code = response.xpath("//FbiMsgsRs/@statusCode").first.value
+      status_message = nil
+     
       [status_code, status_message, response]
     end
-
   end
 end

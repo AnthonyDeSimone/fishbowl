@@ -3,8 +3,9 @@ module Fishbowl::Objects
     attr_accessor :ticket
 
     def send_request(request, expected_response = 'FbiMsgRs')
+
       code, message, response = Fishbowl::Connection.send(build_request(request), expected_response)
-      Fishbowl::Errors.confirm_success_or_raise(code, message)
+      Fishbowl::Errors.confirm_success_or_raise(code.to_i)
       [code, message, response]
     end
 
@@ -25,9 +26,9 @@ module Fishbowl::Objects
         else
           instance_var = field.gsub(/ID$/, 'Id').underscore
         end
-
         instance_var = '@' + instance_var
-        value = @xml.xpath(field).first.nil? ? nil : @xml.xpath(field).first.inner_text
+
+        value = @xml.xpath("//#{field}").first.nil? ? nil : @xml.xpath("//#{field}").first.inner_text
         instance_variable_set(instance_var, value)
       end
     end
@@ -40,7 +41,9 @@ module Fishbowl::Objects
           if @ticket.nil?
             xml.Ticket
           else
-            xml.Ticket @ticket
+            xml.Ticket{ 
+              xml.Key @ticket
+            }
           end
 
           xml.FbiMsgsRq {
