@@ -105,6 +105,8 @@ module Fishbowl # :nodoc:
       end
       
       status_code = response.xpath("//FbiMsgsRs/@statusCode").first.value
+      message_code = response.xpath("//#{expectation}/@statusCode").first.value
+
       status_message = nil
      
       [status_code, status_message, response]
